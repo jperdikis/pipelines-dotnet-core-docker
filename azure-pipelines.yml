@@ -7,13 +7,33 @@ trigger:
 - master
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'ubuntu-16.04'
 
 steps:
 
 - task: Docker@1
   displayName: 'Build an image'
-
+- script: dotnet restore
+  displayName: 'Restore dependencies'
+- task: DotNetCoreCLI@2
+  displayName: Build
+  inputs:
+    command: build
+    projects: '*/**.csproj'
+    arguments: '--configuration Release' # Update this to match your needs
+# do this after you've built your app, near the end of your pipeline in most cases
+# for example, you do this before you deploy to an Azure web app on Windows
+- task: DotNetCoreCLI@2
+  displayName: Creating zip archive
+  inputs:
+    command: publish
+    publishWebProjects: True
+    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    zipAfterPublish: True
+# do this near the end of your pipeline in most cases
+- task: PublishBuildArtifacts@1
+  displayName: Publishing output of the build to Azure Pipelines
+  
 #- script: |
 #    docker-compose -f docs/docker-compose.yml --project-directory . -p docs up -d
 #    docker wait docs_sut_1
